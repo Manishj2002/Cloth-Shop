@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +13,19 @@ import AdminSidebar from '@/components/AdminSidebar';
 export default function Coupons() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [coupons, setCoupons] = useState<any[]>([]);
+  type Coupon = {
+  _id: string;
+  code: string;
+  discount: number;
+  discountType: 'percentage' | 'fixed';
+  expiryDate: string;
+  usageLimit: number;
+  usedCount: number;
+  isActive: boolean;
+};
+
+const [coupons, setCoupons] = useState<Coupon[]>([]);
+
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [newCoupon, setNewCoupon] = useState({

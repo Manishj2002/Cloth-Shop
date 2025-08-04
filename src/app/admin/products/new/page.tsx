@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,10 +11,35 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import AdminSidebar from '@/components/AdminSidebar';
 
+
+type Variant = {
+  size: string;
+  color: string;
+  stock: string;
+};
+
+type Category = {
+  _id: string;
+  name: string;
+};
+
+type FormState = {
+  name: string;
+  description: string;
+  category: string;
+  price: string;
+  discountPrice: string;
+  tags: string;
+  isActive: boolean;
+  variants: Variant[];
+  images: File[];
+};
+
 export default function NewProduct() {
-  const { data: session, status } = useSession();
+  const { data: rawSession, status } = useSession();
+ const session = rawSession;
   const router = useRouter();
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
     name: '',
     description: '',
     category: '',
@@ -24,9 +48,9 @@ export default function NewProduct() {
     tags: '',
     isActive: true,
     variants: [{ size: '', color: '', stock: '' }],
-    images: [] as File[],
+    images: [],
   });
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -35,8 +59,12 @@ export default function NewProduct() {
     } else {
       const fetchCategories = async () => {
         const res = await fetch('/api/categories');
-        const data = await res.json();
-        setCategories(data);
+        if (res.ok) {
+          const data = await res.json();
+          setCategories(data);
+        } else {
+          console.error('Error fetching categories:', await res.text());
+        }
       };
       fetchCategories();
     }
@@ -80,7 +108,7 @@ export default function NewProduct() {
       if (form.discountPrice) formData.append('discountPrice', form.discountPrice);
       formData.append('tags', form.tags);
       formData.append('isActive', form.isActive.toString());
-      formData.append('variants', JSON.stringify(form.variants));
+      formData.append('variants', JSON.stringify(form.variants as Variant[]));
       form.images.forEach((file) => formData.append('images', file));
 
       const res = await fetch('/api/products', {
@@ -93,7 +121,8 @@ export default function NewProduct() {
         const data = await res.json();
         setError(data.message || 'Failed to add product');
       }
-    } catch (err) {
+    } catch (error) {
+      console.error('Error adding product:', error);
       setError('Failed to add product');
     }
   };
@@ -123,7 +152,7 @@ export default function NewProduct() {
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map((cat) => (
+                    {categories.map((cat: Category) => (
                       <SelectItem key={cat._id} value={cat._id}>{cat.name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -150,7 +179,7 @@ export default function NewProduct() {
               <div>
                 <Label>Variants</Label>
                 {form.variants.map((variant, index) => (
-                  <div key={index} className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-2">
+                  <div key={index} className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-2">
                     <Input
                       placeholder="Size"
                       value={variant.size}

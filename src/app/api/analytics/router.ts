@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/authOptions';
 import connectMongoDB from '@/lib/mongodb';
 import { Order } from '@/app/models/Order';
-import { Product } from '@/app/models/Product';
 import { User } from '@/app/models/User';
-import { Category } from '@/app/models/Category';
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== 'Admin') {

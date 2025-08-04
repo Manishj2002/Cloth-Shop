@@ -1,10 +1,20 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/authOptions';
 import connectMongoDB from '@/lib/mongodb';
 import { Order } from '@/app/models/Order';
 import { User } from '@/app/models/User';
-import { Product } from '@/app/models/Product';
+import { FilterQuery } from 'mongoose';
+
+// Define the OrderDocument type (adjust based on your Order schema)
+interface OrderDocument {
+  _id: string;
+  user: string;
+  status: string;
+  items: { product: string }[];
+  createdAt: Date;
+  // Add other fields as needed
+}
 
 export async function GET(req: Request) {
   try {
@@ -24,7 +34,7 @@ export async function GET(req: Request) {
     await connectMongoDB();
 
     if (id) {
-      let query: any = { _id: id };
+      const query: FilterQuery<OrderDocument> = { _id: id };
       if (session.user.role !== 'Admin' && userId) {
         query.user = userId;
       }
@@ -37,7 +47,7 @@ export async function GET(req: Request) {
       return NextResponse.json(order, { status: 200 });
     }
 
-    let query: any = session.user.role === 'Admin' ? {} : { user: session.user.id };
+    const query: FilterQuery<OrderDocument> = session.user.role === 'Admin' ? {} : { user: session.user.id };
     if (userId && session.user.role !== 'Admin') {
       query.user = userId;
     }

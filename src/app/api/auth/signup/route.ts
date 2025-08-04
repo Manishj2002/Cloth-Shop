@@ -36,7 +36,8 @@ import { NextResponse } from 'next/server';
        await sendVerificationEmail(email, verificationToken);
 
        return NextResponse.json({ message: 'User created successfully. Please verify your email.' }, { status: 201 });
-     } catch (error) {
-       return NextResponse.json({ message: 'Server error' }, { status: 500 });
-     }
+     } catch {
+  return NextResponse.json({ message: 'Server error' }, { status: 500 });
+}
+
    }

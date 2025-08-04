@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/authOptions';
+
 import connectMongoDB from '@/lib/mongodb';
 import { User } from '@/app/models/User';
 import { uploadImage } from '@/lib/cloudinary';
@@ -28,7 +29,21 @@ export async function POST(req: Request) {
       { new: true }
     );
 
-    return NextResponse.json({ message: 'Profile picture updated', profilePicture: url }, { status: 200 });
+    if (!user) {
+      return NextResponse.json({ message: 'User not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(
+      {
+        message: 'Profile picture updated',
+        user: {
+          id: user._id,
+          profilePicture: user.profilePicture,
+          // Include other fields as needed, e.g., name, email
+        },
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error('Error uploading profile picture:', error);
     return NextResponse.json({ message: 'Server error' }, { status: 500 });

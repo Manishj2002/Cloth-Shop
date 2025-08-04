@@ -27,7 +27,7 @@ import { NextResponse } from 'next/server';
        await user.save();
 
        return NextResponse.json({ message: 'Password reset successfully' }, { status: 200 });
-     } catch (error) {
-       return NextResponse.json({ message: 'Server error' }, { status: 500 });
-     }
+     } catch {
+  return NextResponse.json({ message: 'Server error' }, { status: 500 });
+}
    }

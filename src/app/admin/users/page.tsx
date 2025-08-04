@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,10 +10,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AdminSidebar from '@/components/AdminSidebar';
 
+
+type User = {
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
+  isBanned: boolean;
+  isVerified: boolean;
+  createdAt: string;
+};
+
 export default function Users() {
-  const { data: session, status } = useSession();
+  const { data: rawSession, status } = useSession();
+ const session = rawSession;
   const router = useRouter();
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -25,10 +36,18 @@ export default function Users() {
       router.push('/auth/signin');
     } else {
       const fetchUsers = async () => {
-        const res = await fetch(`/api/users?search=${search}&page=${page}&limit=${itemsPerPage}`);
-        const data = await res.json();
-        setUsers(data.users);
-        setTotalPages(data.totalPages);
+        try {
+          const res = await fetch(`/api/users?search=${search}&page=${page}&limit=${itemsPerPage}`);
+          if (res.ok) {
+            const data = await res.json();
+            setUsers(data.users);
+            setTotalPages(data.totalPages);
+          } else {
+            console.error('Error fetching users:', await res.text());
+          }
+        } catch (error) {
+          console.error('Error fetching users:', error);
+        }
       };
       fetchUsers();
     }
@@ -43,9 +62,14 @@ export default function Users() {
       });
       if (res.ok) {
         setUsers(users.map((user) => (user._id === id ? { ...user, role } : user)));
+        alert(`User role updated to ${role} successfully`);
+      } else {
+        console.error('Error updating role:', await res.text());
+        alert('Failed to update user role');
       }
     } catch (error) {
       console.error('Error updating role:', error);
+      alert('Failed to update user role');
     }
   };
 
@@ -58,9 +82,14 @@ export default function Users() {
       });
       if (res.ok) {
         setUsers(users.map((user) => (user._id === id ? { ...user, isBanned } : user)));
+        alert(`User ${isBanned ? 'banned' : 'unbanned'} successfully`);
+      } else {
+        console.error('Error updating ban status:', await res.text());
+        alert('Failed to update ban status');
       }
     } catch (error) {
       console.error('Error updating ban status:', error);
+      alert('Failed to update ban status');
     }
   };
 
@@ -93,10 +122,14 @@ export default function Users() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
+                {users.map((user: User) => (
                   <TableRow key={user._id}>
-                    <TableCell>{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
+                    <TableCell className="max-w-xs truncate" title={user.name}>
+                      {user.name}
+                    </TableCell>
+                    <TableCell className="max-w-xs truncate" title={user.email}>
+                      {user.email}
+                    </TableCell>
                     <TableCell>
                       <Select
                         value={user.role}

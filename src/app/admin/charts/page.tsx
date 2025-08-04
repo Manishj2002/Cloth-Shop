@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Bar, Pie } from 'react-chartjs-2';
 import {
@@ -20,10 +19,43 @@ import AdminSidebar from '@/components/AdminSidebar';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
 
+type RevenueItem = {
+  _id: {
+    month: number;
+    year: number;
+  };
+  total: number;
+};
+
+type ProductItem = {
+  name: string;
+  totalQuantity: number;
+};
+
+type CategoryItem = {
+  _id: string;
+  totalRevenue: number;
+};
+
+type UserItem = {
+  _id: {
+    month: number;
+    year: number;
+  };
+  count: number;
+};
+
+type AnalyticsData = {
+  monthlyRevenue: RevenueItem[];
+  topProducts: ProductItem[];
+  salesByCategory: CategoryItem[];
+  newUsers: UserItem[];
+};
+
 export default function Analytics() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [analytics, setAnalytics] = useState({
+  const [analytics, setAnalytics] = useState<AnalyticsData>({
     monthlyRevenue: [],
     topProducts: [],
     salesByCategory: [],
@@ -31,7 +63,7 @@ export default function Analytics() {
   });
 
   useEffect(() => {
-    if (status === 'unauthenticated' || (session && session.user.role !== 'Admin')) {
+    if (status === 'unauthenticated' || session?.user?.role !== 'Admin') {
       router.push('/auth/signin');
     } else {
       const fetchAnalytics = async () => {
@@ -46,11 +78,11 @@ export default function Analytics() {
   if (status === 'loading') return <div>Loading...</div>;
 
   const monthlyRevenueData = {
-    labels: analytics.monthlyRevenue.map((item: any) => `${item._id.month}/${item._id.year}`),
+    labels: analytics.monthlyRevenue.map(item => `${item._id.month}/${item._id.year}`),
     datasets: [
       {
         label: 'Revenue ($)',
-        data: analytics.monthlyRevenue.map((item: any) => item.total),
+        data: analytics.monthlyRevenue.map(item => item.total),
         backgroundColor: 'rgba(0, 100, 0, 0.5)',
         borderColor: 'rgba(0, 100, 0, 1)',
         borderWidth: 1,
@@ -59,11 +91,11 @@ export default function Analytics() {
   };
 
   const topProductsData = {
-    labels: analytics.topProducts.map((item: any) => item.name),
+    labels: analytics.topProducts.map(item => item.name),
     datasets: [
       {
         label: 'Units Sold',
-        data: analytics.topProducts.map((item: any) => item.totalQuantity),
+        data: analytics.topProducts.map(item => item.totalQuantity),
         backgroundColor: 'rgba(0, 100, 0, 0.5)',
         borderColor: 'rgba(0, 100, 0, 1)',
         borderWidth: 1,
@@ -72,11 +104,11 @@ export default function Analytics() {
   };
 
   const salesByCategoryData = {
-    labels: analytics.salesByCategory.map((item: any) => item._id),
+    labels: analytics.salesByCategory.map(item => item._id),
     datasets: [
       {
         label: 'Revenue ($)',
-        data: analytics.salesByCategory.map((item: any) => item.totalRevenue),
+        data: analytics.salesByCategory.map(item => item.totalRevenue),
         backgroundColor: [
           'rgba(0, 100, 0, 0.5)',
           'rgba(139, 69, 19, 0.5)',
@@ -95,11 +127,11 @@ export default function Analytics() {
   };
 
   const newUsersData = {
-    labels: analytics.newUsers.map((item: any) => `${item._id.month}/${item._id.year}`),
+    labels: analytics.newUsers.map(item => `${item._id.month}/${item._id.year}`),
     datasets: [
       {
         label: 'New Users',
-        data: analytics.newUsers.map((item: any) => item.count),
+        data: analytics.newUsers.map(item => item.count),
         backgroundColor: 'rgba(0, 100, 0, 0.5)',
         borderColor: 'rgba(0, 100, 0, 1)',
         borderWidth: 1,

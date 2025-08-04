@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, ChangeEvent } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 
 export default function ChangePassword() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
   const [form, setForm] = useState({
     oldPassword: '',
@@ -26,21 +26,28 @@ export default function ChangePassword() {
     return null;
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async () => {
-    if (!form.oldPassword || !form.newPassword || !form.confirmPassword) {
+    const { oldPassword, newPassword, confirmPassword } = form;
+
+    if (!oldPassword || !newPassword || !confirmPassword) {
       setError('All fields are required');
+      setSuccess('');
       return;
     }
-    if (form.newPassword !== form.confirmPassword) {
+
+    if (newPassword !== confirmPassword) {
       setError('New password and confirm password do not match');
+      setSuccess('');
       return;
     }
-    if (form.newPassword.length < 8) {
+
+    if (newPassword.length < 8) {
       setError('New password must be at least 8 characters long');
+      setSuccess('');
       return;
     }
 
@@ -48,9 +55,11 @@ export default function ChangePassword() {
       const res = await fetch('/api/users/password', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ oldPassword, newPassword, confirmPassword }),
       });
+
       const data = await res.json();
+
       if (res.ok) {
         setSuccess('Password updated successfully');
         setError('');
@@ -59,7 +68,7 @@ export default function ChangePassword() {
         setError(data.message || 'Failed to update password');
         setSuccess('');
       }
-    } catch (err) {
+    } catch {
       setError('Failed to update password');
       setSuccess('');
     }
@@ -129,8 +138,10 @@ export default function ChangePassword() {
                   />
                 </div>
               </div>
+
               {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
               {success && <p className="text-primary-darkgreen text-sm mt-2">{success}</p>}
+
               <Button
                 onClick={handleSubmit}
                 className="mt-4 bg-primary-darkgreen text-base-white hover:bg-primary-navy"

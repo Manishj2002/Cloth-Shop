@@ -2,21 +2,43 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link'; // Added import for Link
+import Image from 'next/image'; // Added import for Image
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
 
+// Define interfaces for type safety
+interface Product {
+  _id: string;
+  name: string;
+  price: number;
+  images: string[];
+}
+
+interface CartItem {
+  _id: string;
+  product: Product;
+  quantity: number;
+  size: string;
+  color: string;
+}
+
+interface Cart {
+  items: CartItem[];
+}
+
 export default function Cart() {
   const { data: session } = useSession();
   const router = useRouter();
-  const [cart, setCart] = useState({ items: [] });
+  const [cart, setCart] = useState<Cart>({ items: [] });
 
   useEffect(() => {
     if (session) {
       fetch('/api/cart')
         .then((res) => res.json())
-        .then((data) => setCart(data));
+        .then((data: Cart) => setCart(data));
     }
   }, [session]);
 
@@ -29,13 +51,13 @@ export default function Cart() {
     if (res.ok) {
       setCart((prev) => ({
         ...prev,
-        items: prev.items.filter((item: any) => item._id.toString() !== itemId),
+        items: prev.items.filter((item) => item._id !== itemId),
       }));
     }
   };
 
   const total = cart.items.reduce(
-    (sum: number, item: any) => sum + item.quantity * item.product.price,
+    (sum: number, item: CartItem) => sum + item.quantity * item.product.price,
     0
   );
 
@@ -61,7 +83,7 @@ export default function Cart() {
           <p className="text-gray-600">Your cart is empty.</p>
         ) : (
           <div className="space-y-4">
-            {cart.items.map((item: any) => (
+            {cart.items.map((item: CartItem) => (
               <motion.div
                 key={item._id}
                 initial={{ opacity: 1 }}
@@ -70,10 +92,12 @@ export default function Cart() {
               >
                 <Card className="bg-base-white border-accent-beige">
                   <CardContent className="p-4 flex items-center gap-4">
-                    <img
+                    <Image
                       src={item.product.images[0] || '/placeholder.jpg'}
                       alt={item.product.name}
-                      className="w-24 h-24 object-cover rounded-md"
+                      width={96}
+                      height={96}
+                      className="object-cover rounded-md"
                     />
                     <div className="flex-grow">
                       <h3 className="text-lg font-heading text-primary-darkgreen">

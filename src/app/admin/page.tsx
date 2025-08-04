@@ -1,32 +1,68 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+
+type Variant = {
+  stock: number;
+};
+
+type Product = {
+  _id: string;
+  name: string;
+  price: number;
+  variants: Variant[];
+};
+
+type Order = {
+  _id: string;
+  totalAmount: number;
+  status: string;
+};
 
 export default function AdminDashboard() {
-  const { data: session } = useSession();
-  const router = useRouter();
-  const [products, setProducts] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [users, setUsers] = useState([]);
+  const { data: rawSession, status } = useSession();
+ const session = rawSession;
+  const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
 
   useEffect(() => {
-    if (session?.user.role === 'Admin') {
-      Promise.all([
-        fetch('/api/products'),
-        fetch('/api/orders'),
-        fetch('/api/users'),
-      ]).then(([productsRes, ordersRes, usersRes]) => {
-        productsRes.json().then((data) => setProducts(data));
-        ordersRes.json().then((data) => setOrders(data));
-        usersRes.json().then((data) => setUsers(data));
-      });
+    if (session?.user?.role === 'Admin') {
+      const fetchData = async () => {
+        try {
+          const [productsRes, ordersRes] = await Promise.all([
+            fetch('/api/products'),
+            fetch('/api/orders'),
+          ]);
+
+          if (productsRes.ok) {
+            const productsData = await productsRes.json();
+            setProducts(productsData);
+          } else {
+            console.error('Error fetching products:', await productsRes.text());
+          }
+
+          if (ordersRes.ok) {
+            const ordersData = await ordersRes.json();
+            setOrders(ordersData);
+          } else {
+            console.error('Error fetching orders:', await ordersRes.text());
+          }
+        } catch (error) {
+          console.error('Error fetching data:', error);
+        }
+      };
+      fetchData();
     }
   }, [session]);
+
+  if (status === 'loading') {
+    return <div>Loading...</div>;
+  }
 
   if (!session || session.user.role !== 'Admin') {
     return (
@@ -52,14 +88,14 @@ export default function AdminDashboard() {
       >
         <h2 className="text-xl font-heading text-primary-darkgreen mb-4">Admin Menu</h2>
         <nav className="space-y-2">
-          <Button variant="outline" className="w-full border-accent-beige">
-            Products
+          <Button asChild variant="outline" className="w-full border-accent-beige">
+            <Link href="/admin/products">Products</Link>
           </Button>
-          <Button variant="outline" className="w-full border-accent-beige">
-            Orders
+          <Button asChild variant="outline" className="w-full border-accent-beige">
+            <Link href="/admin/orders">Orders</Link>
           </Button>
-          <Button variant="outline" className="w-full border-accent-beige">
-            Users
+          <Button asChild variant="outline" className="w-full border-accent-beige">
+            <Link href="/admin/users">Users</Link>
           </Button>
         </nav>
       </motion.aside>
@@ -71,24 +107,24 @@ export default function AdminDashboard() {
           <div>
             <h3 className="text-xl font-heading text-primary-darkgreen mb-4">Products</h3>
             <div className="space-y-4">
-              {products.map((product: any) => (
+              {products.map((product: Product) => (
                 <Card key={product._id} className="bg-base-white border-accent-beige">
                   <CardContent className="p-4 flex justify-between">
                     <div>
                       <p className="text-primary-darkgreen font-bold">{product.name}</p>
-                      <p className="text-sm text-gray-600">${product.price}</p>
+                      <p className="text-sm text-gray-600">${product.price.toFixed(2)}</p>
                       <p
                         className={`text-sm ${
-                          product.variants.some((v: any) => v.stock > 0)
+                          product.variants.some((v: Variant) => v.stock > 0)
                             ? 'text-green-500'
                             : 'text-red-500'
                         }`}
                       >
-                        {product.variants.some((v: any) => v.stock > 0) ? 'In Stock' : 'Out of Stock'}
+                        {product.variants.some((v: Variant) => v.stock > 0) ? 'In Stock' : 'Out of Stock'}
                       </p>
                     </div>
-                    <Button className="bg-primary-darkgreen text-base-white hover:bg-primary-navy">
-                      Edit
+                    <Button asChild className="bg-primary-darkgreen text-base-white hover:bg-primary-navy">
+                      <Link href={`/admin/products/${product._id}`}>Edit</Link>
                     </Button>
                   </CardContent>
                 </Card>
@@ -98,7 +134,7 @@ export default function AdminDashboard() {
           <div>
             <h3 className="text-xl font-heading text-primary-darkgreen mb-4">Orders</h3>
             <div className="space-y-4">
-              {orders.map((order: any) => (
+              {orders.map((order: Order) => (
                 <Card key={order._id} className="bg-base-white border-accent-beige">
                   <CardContent className="p-4 flex justify-between">
                     <div>
@@ -112,8 +148,8 @@ export default function AdminDashboard() {
                         Status: {order.status}
                       </p>
                     </div>
-                    <Button className="bg-primary-darkgreen text-base-white hover:bg-primary-navy">
-                      View
+                    <Button asChild className="bg-primary-darkgreen text-base-white hover:bg-primary-navy">
+                      <Link href={`/admin/orders/${order._id}`}>View</Link>
                     </Button>
                   </CardContent>
                 </Card>

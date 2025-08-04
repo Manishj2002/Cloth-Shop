@@ -3,17 +3,35 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Link from 'next/link';
 import AdminSidebar from '@/components/AdminSidebar';
 
+
+type Order = {
+  _id: string;
+  user?: {
+    name?: string;
+  };
+  createdAt: string;
+  status: string;
+  total: number;
+};
+
+type Stats = {
+  totalOrders: number;
+  totalUsers: number;
+  totalRevenue: number;
+  recentOrders: Order[];
+};
+
 export default function Dashboard() {
-  const { data: session, status } = useSession();
+  const { data: rawSession, status } = useSession();
+  const session = rawSession;
   const router = useRouter();
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<Stats>({
     totalOrders: 0,
     totalUsers: 0,
     totalRevenue: 0,
@@ -24,23 +42,32 @@ export default function Dashboard() {
     if (status === 'unauthenticated' || (session && session.user.role !== 'Admin')) {
       router.push('/auth/signin');
     } else {
-      const fetchStats = async () => {
-        const [ordersRes, usersRes, analyticsRes] = await Promise.all([
-          fetch('/api/orders?page=1&limit=5'),
-          fetch('/api/users?page=1&limit=1'),
-          fetch('/api/analytics'),
-        ]);
-        const ordersData = await ordersRes.json();
-        const usersData = await usersRes.json();
-        const analyticsData = await analyticsRes.json();
+     const fetchStats = async () => {
+  try {
+    const [ordersRes, usersRes, analyticsRes] = await Promise.all([
+      fetch('/api/orders?page=1&limit=5'),
+      fetch('/api/users?page=1&limit=1'),
+      fetch('/api/analytics'),
+    ]);
 
-        setStats({
-          totalOrders: ordersData.totalPages * 10,
-          totalUsers: usersData.totalPages * 10,
-          totalRevenue: analyticsData.monthlyRevenue.reduce((sum: number, item: any) => sum + item.total, 0),
-          recentOrders: ordersData.orders,
-        });
-      };
+    const ordersData = await ordersRes.json();
+    const usersData = await usersRes.json();
+    const analyticsData = await analyticsRes.json();
+
+    setStats({
+      totalOrders: ordersData.totalPages * 10,
+      totalUsers: usersData.totalPages * 10,
+      totalRevenue: analyticsData.monthlyRevenue.reduce(
+        (sum: number, item: { total: number }) => sum + item.total,
+        0
+      ),
+      recentOrders: ordersData.orders,
+    });
+  } catch (err) {
+    console.error('Failed to fetch stats:', err);
+  }
+};
+
       fetchStats();
     }
   }, [session, status, router]);
@@ -87,7 +114,7 @@ export default function Dashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {stats.recentOrders.map((order: any) => (
+                {stats.recentOrders.map((order: Order) => (
                   <TableRow key={order._id}>
                     <TableCell>{order._id}</TableCell>
                     <TableCell>{order.user?.name || 'Guest'}</TableCell>

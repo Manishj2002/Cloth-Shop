@@ -3,21 +3,54 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AdminSidebar from '@/components/AdminSidebar';
 
+
+
+type Item = {
+  productId: string;
+  product?: {
+    name?: string;
+  };
+  size: string;
+  color: string;
+  quantity: number;
+  price: number;
+};
+
+type Order = {
+  _id: string;
+  user?: {
+    name?: string;
+    email?: string;
+  };
+  status: string;
+  paymentStatus: string;
+  total: number;
+  createdAt: string;
+  shippingAddress: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+  };
+  items: Item[];
+};
+
 export default function OrderDetails() {
-  const { data: session, status } = useSession();
+  const { data: rawSession, status } = useSession();
+  const session = rawSession;
   const router = useRouter();
   const { orderId } = useParams();
-  const [order, setOrder] = useState<any>(null);
+  const [order, setOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated' || (session && session.user.role !== 'Admin')) {
       router.push('/auth/signin');
-    } else {
+    } else if (orderId) {
       const fetchOrder = async () => {
         const res = await fetch(`/api/orders?id=${orderId}`);
         const data = await res.json();
@@ -70,7 +103,7 @@ export default function OrderDetails() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {order.items.map((item: any) => (
+                {order.items.map((item: Item) => (
                   <TableRow key={item.productId}>
                     <TableCell>{item.product?.name || 'N/A'}</TableCell>
                     <TableCell>{item.size}</TableCell>

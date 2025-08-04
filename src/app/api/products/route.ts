@@ -1,10 +1,38 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/authOptions';
+
 import connectMongoDB from '@/lib/mongodb';
 import { Product } from '@/app/models/Product';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Category } from '@/app/models/Category';
 import { uploadImage } from '@/lib/cloudinary';
+import { FilterQuery } from 'mongoose';
+
+// Define the ProductDocument type (adjust based on your Product schema)
+interface ProductDocument {
+  _id: string;
+  name: string;
+  description: string;
+  category: string;
+  price: number;
+  discountPrice?: number;
+  tags: string[];
+  isActive: boolean;
+  variants: Variant[];
+  images: string[];
+  // Add other fields as needed
+}
+
+// Define the Variant type
+interface Variant {
+  size: string;
+  color: string;
+  stock: number;
+}
+
+// Define the SortOption type
+type SortOption = Record<string, 1 | -1>;
 
 export async function GET(req: Request) {
   try {
@@ -26,12 +54,12 @@ export async function GET(req: Request) {
       return NextResponse.json(product, { status: 200 });
     }
 
-    let query: any = admin ? {} : { isActive: true };
+    const query: FilterQuery<ProductDocument> = admin ? {} : { isActive: true };
     if (search) {
       query.name = { $regex: search, $options: 'i' };
     }
 
-    let sortOption: any = {};
+    const sortOption: SortOption = {};
     if (sort === 'price') sortOption.price = 1;
     if (sort === 'stock') sortOption['variants.stock'] = 1;
     if (sort === 'name') sortOption.name = 1;
@@ -66,10 +94,10 @@ export async function POST(req: Request) {
     const discountPrice = formData.get('discountPrice') ? parseFloat(formData.get('discountPrice') as string) : undefined;
     const tags = (formData.get('tags') as string).split(',').map(tag => tag.trim());
     const isActive = formData.get('isActive') === 'true';
-    const variants = JSON.parse(formData.get('variants') as string);
+    const variants: Variant[] = JSON.parse(formData.get('variants') as string);
     const images = formData.getAll('images') as File[];
 
-    if (!name || !description || !category || !price || !variants.every((v: any) => v.size && v.color && v.stock)) {
+    if (!name || !description || !category || !price || !variants.every((v: Variant) => v.size && v.color && v.stock)) {
       return NextResponse.json({ message: 'All fields are required' }, { status: 400 });
     }
 
@@ -122,11 +150,11 @@ export async function PUT(req: Request) {
     const discountPrice = formData.get('discountPrice') ? parseFloat(formData.get('discountPrice') as string) : undefined;
     const tags = (formData.get('tags') as string).split(',').map(tag => tag.trim());
     const isActive = formData.get('isActive') === 'true';
-    const variants = JSON.parse(formData.get('variants') as string);
+    const variants: Variant[] = JSON.parse(formData.get('variants') as string);
     const existingImages = JSON.parse(formData.get('existingImages') as string);
     const images = formData.getAll('images') as File[];
 
-    if (!name || !description || !category || !price || !variants.every((v: any) => v.size && v.color && v.stock)) {
+    if (!name || !description || !category || !price || !variants.every((v: Variant) => v.size && v.color && v.stock)) {
       return NextResponse.json({ message: 'All fields are required' }, { status: 400 });
     }
 

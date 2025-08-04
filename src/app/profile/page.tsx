@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ChangeEvent } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -11,10 +11,18 @@ import { Label } from '@/components/ui/label';
 import Image from 'next/image';
 import Link from 'next/link';
 
+type User = {
+  name: string;
+  email: string;
+  role: string;
+  isVerified: boolean;
+  profilePicture?: string;
+};
+
 export default function Profile() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState('');
 
@@ -23,15 +31,19 @@ export default function Profile() {
       router.push('/auth/signin');
     } else if (session) {
       const fetchUser = async () => {
-        const res = await fetch('/api/users/me');
-        const data = await res.json();
-        setUser(data);
+        try {
+          const res = await fetch('/api/users/me');
+          const data: User = await res.json();
+          setUser(data);
+        } catch {
+          setError('Failed to fetch user data.');
+        }
       };
       fetchUser();
     }
   }, [session, status, router]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
     }
@@ -42,22 +54,26 @@ export default function Profile() {
       setError('Please select an image');
       return;
     }
+
     try {
       const formData = new FormData();
       formData.append('file', file);
+
       const res = await fetch('/api/users/profile-picture', {
         method: 'POST',
         body: formData,
       });
+
       const data = await res.json();
+
       if (res.ok) {
-        setUser({ ...user, profilePicture: data.profilePicture });
+        setUser((prev) => prev ? { ...prev, profilePicture: data.profilePicture } : null);
         setError('');
         setFile(null);
       } else {
         setError(data.message || 'Failed to upload profile picture');
       }
-    } catch (err) {
+    } catch {
       setError('Failed to upload profile picture');
     }
   };

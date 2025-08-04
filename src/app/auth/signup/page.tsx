@@ -37,8 +37,16 @@ export default function SignUp() {
       setEmail('');
       setPassword('');
       setName('');
-    } catch (err: any) {
-      setError(err.message);
+      // Redirect to verify email page after a short delay
+      setTimeout(() => {
+        router.push('/auth/verify');
+      }, 2000);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred');
+      }
     }
   };
 

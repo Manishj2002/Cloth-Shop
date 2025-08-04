@@ -3,36 +3,60 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import Image from 'next/image';
+
+type Variant = {
+  size: string;
+  color: string;
+};
+
+type Product = {
+  _id: string;
+  name: string;
+  price: number;
+  discountPrice?: number;
+  description: string;
+  images: string[];
+  variants: Variant[];
+};
 
 export default function ProductDetails() {
-  const { id } = useParams();
-  const [product, setProduct] = useState<any>(null);
-  const [selectedVariant, setSelectedVariant] = useState({ size: '', color: '' });
+  const { id } = useParams<{ id: string }>();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<Variant>({ size: '', color: '' });
   const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         const res = await fetch(`/api/products?id=${id}`);
-        const data = await res.json();
+        const data: Product[] = await res.json();
+
         if (data[0]) {
           setProduct(data[0]);
-          if (data[0]?.variants?.length > 0) {
+
+          const firstVariant = data[0].variants[0];
+          if (firstVariant) {
             setSelectedVariant({
-              size: data[0].variants[0].size || '',
-              color: data[0].variants[0].color || '',
+              size: firstVariant.size || '',
+              color: firstVariant.color || '',
             });
-            
           }
         }
       } catch (error) {
         console.error('Error fetching product:', error);
       }
     };
+
     fetchProduct();
   }, [id]);
 
@@ -41,34 +65,41 @@ export default function ProductDetails() {
       alert('Please select a size and color');
       return;
     }
-    const res = await fetch('/api/cart', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        productId: id,
-        quantity,
-        size: selectedVariant.size,
-        color: selectedVariant.color,
-      }),
-    });
-    if (res.ok) {
-      alert('Added to cart!');
-    } else {
-      alert('Failed to add to cart');
+
+    try {
+      const res = await fetch('/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: id,
+          quantity,
+          size: selectedVariant.size,
+          color: selectedVariant.color,
+        }),
+      });
+
+      if (res.ok) {
+        alert('Added to cart!');
+      } else {
+        alert('Failed to add to cart');
+      }
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      alert('An error occurred');
     }
   };
 
   if (!product) return <div>Loading...</div>;
 
   const availableSizes = Array.from(
-    new Set(product.variants.map((v: any) => v.size).filter((size: string) => size))
+    new Set(product.variants.map((v) => v.size).filter(Boolean))
   );
   const availableColors = Array.from(
     new Set(
       product.variants
-        .filter((v: any) => v.size === selectedVariant.size)
-        .map((v: any) => v.color)
-        .filter((color: string) => color)
+        .filter((v) => v.size === selectedVariant.size)
+        .map((v) => v.color)
+        .filter(Boolean)
     )
   );
 
@@ -81,9 +112,11 @@ export default function ProductDetails() {
         transition={{ duration: 0.5 }}
         className="md:w-1/2"
       >
-        <img
+        <Image
           src={product.images[0] || '/placeholder.jpg'}
           alt={product.name}
+          width={600}
+          height={500}
           className="w-full h-96 object-cover rounded-md"
         />
       </motion.div>
@@ -92,11 +125,13 @@ export default function ProductDetails() {
       <div className="md:w-1/2 space-y-4">
         <h1 className="text-3xl font-heading text-primary-darkgreen">{product.name}</h1>
         <p className="text-primary-darkgreen font-bold">
-          ${product.discountPrice || product.price}
+          ${product.discountPrice ?? product.price}
           {product.discountPrice && (
             <span className="text-sm text-gray-500 line-through ml-2">${product.price}</span>
           )}
         </p>
+
+        {/* Size Selector */}
         {availableSizes.length > 0 ? (
           <div>
             <label className="text-sm font-body text-primary-darkgreen">Size</label>
@@ -119,6 +154,8 @@ export default function ProductDetails() {
         ) : (
           <p className="text-sm text-gray-600">No sizes available</p>
         )}
+
+        {/* Color Selector */}
         {availableColors.length > 0 ? (
           <div>
             <label className="text-sm font-body text-primary-darkgreen">Color</label>
@@ -141,22 +178,27 @@ export default function ProductDetails() {
         ) : (
           <p className="text-sm text-gray-600">No colors available</p>
         )}
+
+        {/* Quantity */}
         <div>
           <label className="text-sm font-body text-primary-darkgreen">Quantity</label>
           <input
             type="number"
-            min="1"
+            min={1}
             value={quantity}
             onChange={(e) => setQuantity(Number(e.target.value))}
             className="w-20 border-accent-beige p-2 rounded-md"
           />
         </div>
+
         <Button
           className="bg-primary-darkgreen text-base-white hover:bg-primary-navy"
           onClick={handleAddToCart}
         >
           Add to Cart
         </Button>
+
+        {/* Tabs */}
         <Tabs defaultValue="description" className="mt-4">
           <TabsList className="bg-accent-beige">
             <TabsTrigger value="description">Description</TabsTrigger>

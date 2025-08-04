@@ -3,17 +3,31 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import Link from 'next/link';
+
+// Define proper Order interface
+interface Order {
+  _id: string;
+  createdAt: string;
+  status: string;
+  total: number;
+}
 
 export default function UserOrders() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -88,7 +102,9 @@ export default function UserOrders() {
             >
               Previous
             </Button>
-            <span className="text-primary-darkgreen">Page {page} of {totalPages}</span>
+            <span className="text-primary-darkgreen">
+              Page {page} of {totalPages}
+            </span>
             <Button
               disabled={page === totalPages}
               onClick={() => setPage(page + 1)}

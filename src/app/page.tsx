@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,9 +10,24 @@ import { AuthCard } from '@/components/auth/AuthCard';
 import { AuthInput } from '@/components/auth/AuthInput';
 import { AuthButton } from '@/components/auth/AuthButton';
 
+interface Category {
+  _id: string;
+  name: string;
+  description: string;
+}
+
+interface Product {
+  _id: string;
+  name: string;
+  description: string;
+  price: number;
+  discountPrice?: number;
+  images: string[];
+}
+
 export default function Home() {
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [email, setEmail] = useState('');
   const [newsletterSuccess, setNewsletterSuccess] = useState('');
 
@@ -31,7 +47,6 @@ export default function Home() {
 
   const handleNewsletter = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock newsletter subscription
     setNewsletterSuccess('Subscribed successfully!');
     setEmail('');
   };
@@ -68,7 +83,7 @@ export default function Home() {
           Shop by Category
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          {categories.map((category: any) => (
+          {categories.map((category) => (
             <motion.div
               key={category._id}
               whileHover={{ scale: 1.05 }}
@@ -95,7 +110,7 @@ export default function Home() {
           Top Deals
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {products.map((product: any) => (
+          {products.map((product) => (
             <motion.div
               key={product._id}
               whileHover={{ scale: 1.05 }}
@@ -104,17 +119,20 @@ export default function Home() {
               <Link href={`/product/${product._id}`}>
                 <Card className="bg-base-white border-accent-beige">
                   <CardContent className="p-4">
-                    <img
-                      src={product.images[0] || '/placeholder.jpg'}
-                      alt={product.name}
-                      className="w-full h-48 object-cover rounded-md"
-                    />
+                    <div className="w-full h-48 relative">
+                      <Image
+                        src={product.images[0] || '/placeholder.jpg'}
+                        alt={product.name || 'Product image'}
+                        fill
+                        className="object-cover rounded-md"
+                      />
+                    </div>
                     <h3 className="text-lg font-heading text-primary-darkgreen mt-2">
                       {product.name}
                     </h3>
                     <p className="text-sm text-gray-600">{product.description}</p>
                     <p className="text-primary-darkgreen font-bold mt-2">
-                      ${product.discountPrice || product.price}
+                      ${product.discountPrice ?? product.price}
                     </p>
                     <Button className="mt-2 bg-primary-darkgreen text-base-white hover:bg-primary-navy">
                       Quick View
@@ -141,7 +159,9 @@ export default function Home() {
               required
             />
             {newsletterSuccess && (
-              <p className="text-green-500 text-sm text-center">{newsletterSuccess}</p>
+              <p className="text-green-500 text-sm text-center">
+                {newsletterSuccess}
+              </p>
             )}
             <AuthButton label="Subscribe" />
           </form>

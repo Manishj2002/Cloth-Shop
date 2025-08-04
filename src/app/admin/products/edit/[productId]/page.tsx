@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
-import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,11 +12,37 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import AdminSidebar from '@/components/AdminSidebar';
 
+
+type Variant = {
+  size: string;
+  color: string;
+  stock: string;
+};
+
+type Category = {
+  _id: string;
+  name: string;
+};
+
+type FormState = {
+  name: string;
+  description: string;
+  category: string;
+  price: string;
+  discountPrice: string;
+  tags: string;
+  isActive: boolean;
+  variants: Variant[];
+  images: File[];
+  existingImages: string[];
+};
+
 export default function EditProduct() {
-  const { data: session, status } = useSession();
+  const { data: rawSession, status } = useSession();
+ const session = rawSession;
   const router = useRouter();
   const { productId } = useParams();
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
     name: '',
     description: '',
     category: '',
@@ -25,36 +51,45 @@ export default function EditProduct() {
     tags: '',
     isActive: true,
     variants: [{ size: '', color: '', stock: '' }],
-    images: [] as File[],
-    existingImages: [] as string[],
+    images: [],
+    existingImages: [],
   });
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (status === 'unauthenticated' || (session && session.user.role !== 'Admin')) {
       router.push('/auth/signin');
-    } else {
+    } else if (productId) {
       const fetchProduct = async () => {
         const res = await fetch(`/api/products?id=${productId}`);
-        const data = await res.json();
-        setForm({
-          name: data.name,
-          description: data.description,
-          category: data.category?._id || '',
-          price: data.price.toString(),
-          discountPrice: data.discountPrice?.toString() || '',
-          tags: data.tags.join(','),
-          isActive: data.isActive,
-          variants: data.variants,
-          images: [],
-          existingImages: data.images,
-        });
+        if (res.ok) {
+          const data = await res.json();
+          setForm({
+            name: data.name,
+            description: data.description,
+            category: data.category?._id || '',
+            price: data.price.toFixed(2),
+            discountPrice: data.discountPrice?.toFixed(2) || '',
+            tags: data.tags.join(','),
+            isActive: data.isActive,
+            variants: data.variants,
+            images: [],
+            existingImages: data.images,
+          });
+        } else {
+          console.error('Error fetching product:', await res.text());
+          router.push('/admin/products');
+        }
       };
       const fetchCategories = async () => {
         const res = await fetch('/api/categories');
-        const data = await res.json();
-        setCategories(data);
+        if (res.ok) {
+          const data = await res.json();
+          setCategories(data);
+        } else {
+          console.error('Error fetching categories:', await res.text());
+        }
       };
       fetchProduct();
       fetchCategories();
@@ -103,7 +138,7 @@ export default function EditProduct() {
       if (form.discountPrice) formData.append('discountPrice', form.discountPrice);
       formData.append('tags', form.tags);
       formData.append('isActive', form.isActive.toString());
-      formData.append('variants', JSON.stringify(form.variants));
+      formData.append('variants', JSON.stringify(form.variants as Variant[]));
       formData.append('existingImages', JSON.stringify(form.existingImages));
       form.images.forEach((file) => formData.append('images', file));
 
@@ -117,7 +152,8 @@ export default function EditProduct() {
         const data = await res.json();
         setError(data.message || 'Failed to update product');
       }
-    } catch (err) {
+    } catch (error) {
+      console.error('Error updating product:', error);
       setError('Failed to update product');
     }
   };
@@ -147,7 +183,7 @@ export default function EditProduct() {
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map((cat) => (
+                    {categories.map((cat: Category) => (
                       <SelectItem key={cat._id} value={cat._id}>{cat.name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -174,7 +210,7 @@ export default function EditProduct() {
               <div>
                 <Label>Variants</Label>
                 {form.variants.map((variant, index) => (
-                  <div key={index} className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-2">
+                  <div key={index} className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-2">
                     <Input
                       placeholder="Size"
                       value={variant.size}
@@ -208,7 +244,13 @@ export default function EditProduct() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {form.existingImages.map((url, index) => (
                     <div key={index} className="relative">
-                      <img src={url} alt="Product" className="w-full h-24 object-cover rounded-md" />
+                      <Image
+                        src={url}
+                        alt="Product"
+                        width={96}
+                        height={96}
+                        className="w-full h-24 object-cover rounded-md"
+                      />
                       <Button
                         variant="destructive"
                         size="sm"

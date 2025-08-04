@@ -3,15 +3,37 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+interface Category {
+  _id: string;
+  name: string;
+  description: string;
+}
+
+interface Product {
+  _id: string;
+  name: string;
+  description: string;
+  price: number;
+  discountPrice?: number;
+  images: string[];
+}
 
 export default function Products() {
   const searchParams = useSearchParams();
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [filters, setFilters] = useState({
     category: searchParams.get('category') || '',
     minPrice: '',
@@ -19,27 +41,24 @@ export default function Products() {
     sort: 'new',
   });
 
-useEffect(() => {
-  const fetchData = async () => {
-    const query = new URLSearchParams(filters).toString();
-    const [productsRes, categoriesRes] = await Promise.all([
-      fetch(`/api/products?${query}`),
-      fetch('/api/categories'),
-    ]);
+  useEffect(() => {
+    const fetchData = async () => {
+      const query = new URLSearchParams(filters).toString();
+      const [productsRes, categoriesRes] = await Promise.all([
+        fetch(`/api/products?${query}`),
+        fetch('/api/categories'),
+      ]);
 
-    const productsData = await productsRes.json();
-    const categoriesData = await categoriesRes.json();
+      const productsData = await productsRes.json();
+      const categoriesData = await categoriesRes.json();
 
-    // ✅ Extract the actual array
-    const productsArray = productsData.products || productsData;
+      const productsArray = productsData.products || productsData;
+      setProducts(productsArray);
+      setCategories(categoriesData);
+    };
 
-    setProducts(productsArray);
-    setCategories(categoriesData);
-  };
-
-  fetchData();
-}, [filters]);
-
+    fetchData();
+  }, [filters]);
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters((prev) => ({
@@ -70,7 +89,7 @@ useEffect(() => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((category: any) => (
+                {categories.map((category) => (
                   <SelectItem key={category._id} value={category._id}>
                     {category.name}
                   </SelectItem>
@@ -117,7 +136,7 @@ useEffect(() => {
           </Select>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {products.map((product: any) => (
+          {products.map((product) => (
             <motion.div
               key={product._id}
               whileHover={{ scale: 1.05 }}
@@ -126,17 +145,20 @@ useEffect(() => {
               <Link href={`/product/${product._id}`}>
                 <Card className="bg-base-white border-accent-beige">
                   <CardContent className="p-4">
-                    <img
-                      src={product.images[0] || '/placeholder.jpg'}
-                      alt={product.name}
-                      className="w-full h-48 object-cover rounded-md"
-                    />
+                    <div className="w-full h-48 relative">
+                      <Image
+                        src={product.images[0] || '/placeholder.jpg'}
+                        alt={product.name || 'Product Image'}
+                        fill
+                        className="object-cover rounded-md"
+                      />
+                    </div>
                     <h3 className="text-lg font-heading text-primary-darkgreen mt-2">
                       {product.name}
                     </h3>
                     <p className="text-sm text-gray-600">{product.description}</p>
                     <p className="text-primary-darkgreen font-bold mt-2">
-                      ${product.discountPrice || product.price}
+                      ${product.discountPrice ?? product.price}
                     </p>
                     <Button className="mt-2 bg-primary-darkgreen text-base-white hover:bg-primary-navy">
                       Quick View

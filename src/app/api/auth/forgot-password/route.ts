@@ -29,7 +29,7 @@ import { NextResponse } from 'next/server';
        await sendResetPasswordEmail(email, resetToken);
 
        return NextResponse.json({ message: 'Reset link sent to email' }, { status: 200 });
-     } catch (error) {
-       return NextResponse.json({ message: 'Server error' }, { status: 500 });
-     }
+     } catch {
+  return NextResponse.json({ message: 'Server error' }, { status: 500 });
+}
    }

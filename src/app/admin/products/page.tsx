@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,10 +11,32 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import Link from 'next/link';
 import AdminSidebar from '@/components/AdminSidebar';
 
+
+
+type Variant = {
+  stock: number;
+};
+
+type Category = {
+  _id: string;
+  name: string;
+};
+
+type Product = {
+  _id: string;
+  name: string;
+  category?: Category;
+  price: number;
+  discountPrice?: number;
+  variants: Variant[];
+  isActive: boolean;
+};
+
 export default function Products() {
-  const { data: session, status } = useSession();
+  const { data: rawSession, status } = useSession();
+  const session = rawSession;
   const router = useRouter();
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('name');
   const [page, setPage] = useState(1);
@@ -27,12 +48,20 @@ export default function Products() {
       router.push('/auth/signin');
     } else {
       const fetchProducts = async () => {
-        const res = await fetch(
-          `/api/products?search=${search}&sort=${sort}&page=${page}&limit=${itemsPerPage}&admin=true`
-        );
-        const data = await res.json();
-        setProducts(data.products);
-        setTotalPages(data.totalPages);
+        try {
+          const res = await fetch(
+            `/api/products?search=${search}&sort=${sort}&page=${page}&limit=${itemsPerPage}&admin=true`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            setProducts(data.products);
+            setTotalPages(data.totalPages);
+          } else {
+            console.error('Error fetching products:', await res.text());
+          }
+        } catch (error) {
+          console.error('Error fetching products:', error);
+        }
       };
       fetchProducts();
     }
@@ -44,9 +73,14 @@ export default function Products() {
         const res = await fetch(`/api/products?id=${id}`, { method: 'DELETE' });
         if (res.ok) {
           setProducts(products.filter((p) => p._id !== id));
+          alert('Product deleted successfully');
+        } else {
+          console.error('Error deleting product:', await res.text());
+          alert('Failed to delete product');
         }
       } catch (error) {
         console.error('Error deleting product:', error);
+        alert('Failed to delete product');
       }
     }
   };
@@ -95,12 +129,12 @@ export default function Products() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {products.map((product) => (
+                {products.map((product: Product) => (
                   <TableRow key={product._id}>
                     <TableCell>{product.name}</TableCell>
                     <TableCell>{product.category?.name || 'N/A'}</TableCell>
-                    <TableCell>${product.discountPrice || product.price}</TableCell>
-                    <TableCell>{product.variants.reduce((sum: number, v: any) => sum + v.stock, 0)}</TableCell>
+                    <TableCell>${(product.discountPrice || product.price).toFixed(2)}</TableCell>
+                    <TableCell>{product.variants.reduce((sum: number, v: Variant) => sum + v.stock, 0)}</TableCell>
                     <TableCell>{product.isActive ? 'Yes' : 'No'}</TableCell>
                     <TableCell className="flex space-x-2">
                       <Button asChild variant="outline" className="border-accent-beige text-primary-darkgreen hover:bg-accent-beige">

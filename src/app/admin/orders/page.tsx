@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,10 +11,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import Link from 'next/link';
 import AdminSidebar from '@/components/AdminSidebar';
 
+
+type Order = {
+  _id: string;
+  user?: {
+    name?: string;
+  };
+  createdAt: string;
+  status: string;
+  total: number;
+};
+
 export default function AdminOrders() {
-  const { data: session, status } = useSession();
+  const { data: rawSession, status } = useSession();
+  const session = rawSession;
   const router = useRouter();
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(1);
@@ -73,23 +84,22 @@ export default function AdminOrders() {
                 onChange={(e) => setSearch(e.target.value)}
                 className="border-accent-beige max-w-md"
               />
-             <Select
-  value={statusFilter === '' ? 'all' : statusFilter}
-  onValueChange={(val) => setStatusFilter(val === 'all' ? '' : val)}
->
-  <SelectTrigger className="border-accent-beige w-full sm:w-40">
-    <SelectValue placeholder="Filter by status" />
-  </SelectTrigger>
-  <SelectContent>
-    <SelectItem value="all">All Statuses</SelectItem>
-    <SelectItem value="Pending">Pending</SelectItem>
-    <SelectItem value="Processing">Processing</SelectItem>
-    <SelectItem value="Shipped">Shipped</SelectItem>
-    <SelectItem value="Delivered">Delivered</SelectItem>
-    <SelectItem value="Cancelled">Cancelled</SelectItem>
-  </SelectContent>
-</Select>
-
+              <Select
+                value={statusFilter === '' ? 'all' : statusFilter}
+                onValueChange={(val) => setStatusFilter(val === 'all' ? '' : val)}
+              >
+                <SelectTrigger className="border-accent-beige w-full sm:w-40">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Processing">Processing</SelectItem>
+                  <SelectItem value="Shipped">Shipped</SelectItem>
+                  <SelectItem value="Delivered">Delivered</SelectItem>
+                  <SelectItem value="Cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <Table>
               <TableHeader>

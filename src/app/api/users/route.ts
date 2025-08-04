@@ -1,8 +1,29 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/authOptions';
+
 import connectMongoDB from '@/lib/mongodb';
 import { User } from '@/app/models/User';
+import { FilterQuery } from 'mongoose';
+
+// Define the UserDocument type (adjust based on your User schema)
+interface UserDocument {
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
+  isVerified: boolean;
+  isBanned: boolean;
+  provider: string;
+  createdAt: Date;
+  // Add other fields as needed
+}
+
+// Define the UpdateUser type for PATCH updates
+interface UpdateUser {
+  role?: string;
+  isBanned?: boolean;
+}
 
 export async function GET(req: Request) {
   try {
@@ -18,7 +39,7 @@ export async function GET(req: Request) {
 
     await connectMongoDB();
 
-    let query: any = {};
+    const query: FilterQuery<UserDocument> = {};
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -57,7 +78,7 @@ export async function PATCH(req: Request) {
     }
 
     await connectMongoDB();
-    const update: any = {};
+    const update: UpdateUser = {};
     if (role) {
       if (!['User', 'Admin'].includes(role)) {
         return NextResponse.json({ message: 'Invalid role' }, { status: 400 });
