@@ -103,8 +103,8 @@ export default function OrderDetails() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {order.items.map((item: Item) => (
-                  <TableRow key={item.productId}>
+                {order.items.map((item: Item, index) => (
+                  <TableRow key={item.productId || index}>
                     <TableCell>{item.product?.name || 'N/A'}</TableCell>
                     <TableCell>{item.size}</TableCell>
                     <TableCell>{item.color}</TableCell>

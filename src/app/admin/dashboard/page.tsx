@@ -114,8 +114,8 @@ export default function Dashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {stats.recentOrders.map((order: Order) => (
-                  <TableRow key={order._id}>
+                {stats.recentOrders.map((order: Order, index) => (
+                  <TableRow key={order._id || index}>
                     <TableCell>{order._id}</TableCell>
                     <TableCell>{order.user?.name || 'Guest'}</TableCell>
                     <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>

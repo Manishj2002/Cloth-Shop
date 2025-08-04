@@ -146,8 +146,8 @@ export default function Categories() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {categories.map((category) => (
-                  <TableRow key={category._id}>
+                {categories.map((category,index) => (
+                  <TableRow key={category._id || index}>
                     <TableCell>{category.name}</TableCell>
                     <TableCell>{category.description}</TableCell>
                     <TableCell className="flex space-x-2">

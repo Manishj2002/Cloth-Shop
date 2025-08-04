@@ -113,8 +113,8 @@ export default function AdminOrders() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {orders.map((order) => (
-                  <TableRow key={order._id}>
+                {orders.map((order,index) => (
+                  <TableRow key={order._id || index}>
                     <TableCell>{order._id}</TableCell>
                     <TableCell>{order.user?.name || 'Guest'}</TableCell>
                     <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
