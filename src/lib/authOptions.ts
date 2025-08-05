@@ -25,7 +25,8 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Invalid email or password');
         }
 
-        if (!user.isEmailVerified) {
+        // ✅ Conditionally check email verification
+        if (!user.isVerified && process.env.REQUIRE_EMAIL_VERIFICATION === 'true') {
           throw new Error('Please verify your email before signing in');
         }
 
@@ -47,22 +48,24 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
   ],
-  
+
   callbacks: {
     async jwt({ token, user, account }) {
       if (user) {
+        await connectMongoDB();
+
         if (account?.provider === 'google') {
-          await connectMongoDB();
           const existingUser = await User.findOne({ email: user.email });
 
           if (!existingUser) {
             const newUser = await User.create({
               name: user.name,
               email: user.email,
-              password: null,
+              provider: 'google',
               role: 'User',
-              isEmailVerified: true,
+              isVerified: true,
             });
+
             token.id = newUser._id.toString();
             token.role = newUser.role;
           } else {
@@ -74,8 +77,10 @@ export const authOptions: NextAuthOptions = {
           token.role = user.role;
         }
       }
+
       return token;
     },
+
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
@@ -84,10 +89,13 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
+
   session: {
     strategy: 'jwt',
   },
+
   secret: process.env.NEXTAUTH_SECRET,
+
   pages: {
     signIn: '/auth/signin',
     error: '/auth/error',

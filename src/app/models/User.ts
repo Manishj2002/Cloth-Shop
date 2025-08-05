@@ -11,7 +11,7 @@ export interface IUser extends Document {
   resetPasswordToken?: string;
   resetPasswordTokenExpires?: Date;
   profilePicture?: string;
-  provider?: string;
+  provider?: 'credentials' | 'google';
   isBanned?: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -32,13 +32,14 @@ const UserSchema: Schema<IUser> = new Schema(
     },
     provider: {
       type: String,
-      enum: ['credentials', 'google', null],
+      enum: ['credentials', 'google'],
       default: 'credentials',
     },
     password: {
       type: String,
       required: function (this: IUser) {
-        return this.provider === 'credentials';
+        // Default to credentials if provider is missing
+        return (this.provider ?? 'credentials') === 'credentials';
       },
     },
     role: {
